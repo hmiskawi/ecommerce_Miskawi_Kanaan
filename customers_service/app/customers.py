@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS 
 
-from database.customers_db import create_db_table, insert_customer, update_customer, delete_customer, get_customers, get_customer_by_id, get_customer_by_username, update_customer_wallet
+from database.customers_db import create_customers_table, insert_customer, update_customer, delete_customer, get_customers, get_customer_by_id, get_customer_by_username, update_customer_wallet
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -49,5 +49,5 @@ def api_charge_customer(username, amount):
     return jsonify(update_customer_wallet(username, neg_amount))
 
 if __name__ == "__main__":
-    create_db_table()
+    create_customers_table()
     app.run(debug=True)

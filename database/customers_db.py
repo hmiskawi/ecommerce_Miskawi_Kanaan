@@ -4,7 +4,7 @@ def connect_to_db():
     conn = sqlite3.connect('ecommerce.db')
     return conn
 
-def create_db_table():
+def create_customers_table():
     try:
         conn = connect_to_db()
         conn.execute('''
@@ -50,7 +50,7 @@ def update_customer(customer):
         cur = conn.cursor()
         cur.execute("UPDATE Customers SET first_name = ?, last_name = ?, username = ?, password=?, age = ?, address = ?, gender = ?, marital_status = ?, wallet_balance = ? WHERE customer_id=?", (customer['first_name'], customer['last_name'], customer['username'], customer['password'], customer['age'], customer['address'], customer['gender'], customer['marital_status'], customer['wallet_balance'], customer["user_id"],))
         conn.commit()
-        updated_customer = get_customer_by_id(customer["user_id"])
+        updated_customer = get_customer_by_id(customer["customer_id"])
     except:
         print("Update failed.")
         conn.rollback()
