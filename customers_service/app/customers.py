@@ -9,7 +9,8 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 # Register a new customer with full details
 @app.route('/customers/register', methods=['POST'])
 def api_register_customer():
-    return jsonify(insert_customer())
+    customer = request.get_json()
+    return jsonify(insert_customer(customer))
 
 # Delete a customer by their ID
 @app.route('/customers/delete/<customer_id>', methods=['DELETE'])

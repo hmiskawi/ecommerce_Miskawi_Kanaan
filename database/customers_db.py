@@ -108,16 +108,16 @@ def get_customer_by_id(customer_id):
         cur = conn.cursor()
         cur.execute("SELECT * FROM Customers WHERE customer_id = ?",(customer_id,))
         row = cur.fetchone()
-        customer["customer_id"] = ["customer_id"]
-        customer["first_name"] = ["first_name"]
-        customer["last_name"] = ["last_name"]
-        customer["username"] = ["username"]
-        customer["password"] = ["password"]
-        customer["age"] = ["age"]
-        customer["address"] = ["address"]
-        customer["gender"] = ["gender"]
-        customer["marital_status"] = ["marital_status"]
-        customer["wallet_balance"] = ["wallet_balance"]
+        customer["customer_id"] = row["customer_id"]
+        customer["first_name"] = row["first_name"]
+        customer["last_name"] = row["last_name"]
+        customer["username"] = row["username"]
+        customer["password"] = row["password"]
+        customer["age"] = row["age"]
+        customer["address"] = row["address"]
+        customer["gender"] = row["gender"]
+        customer["marital_status"] = row["marital_status"]
+        customer["wallet_balance"] = row["wallet_balance"]
     except:
         print(f"Failed to fetch customer with id: {customer_id}")
         customer = {}
@@ -131,16 +131,16 @@ def get_customer_by_username(customer_username):
         cur = conn.cursor()
         cur.execute("SELECT * FROM Customers WHERE username = ?",(customer_username,))
         row = cur.fetchone()
-        customer["customer_id"] = ["customer_id"]
-        customer["first_name"] = ["first_name"]
-        customer["last_name"] = ["last_name"]
-        customer["username"] = ["username"]
-        customer["password"] = ["password"]
-        customer["age"] = ["age"]
-        customer["address"] = ["address"]
-        customer["gender"] = ["gender"]
-        customer["marital_status"] = ["marital_status"]
-        customer["wallet_balance"] = ["wallet_balance"]
+        customer["customer_id"] = row["customer_id"]
+        customer["first_name"] = row["first_name"]
+        customer["last_name"] = row["last_name"]
+        customer["username"] = row["username"]
+        customer["password"] = row["password"]
+        customer["age"] = row["age"]
+        customer["address"] = row["address"]
+        customer["gender"] = row["gender"]
+        customer["marital_status"] = row["marital_status"]
+        customer["wallet_balance"] = row["wallet_balance"]
     except:
         print(f"Failed to fetch customer with username: {customer_username}")
         customer = {}

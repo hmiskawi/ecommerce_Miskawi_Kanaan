@@ -100,12 +100,12 @@ def get_product_by_id(product_id):
         cur = conn.cursor()
         cur.execute("SELECT * FROM Inventory WHERE product_id = ?",(product_id,))
         row = cur.fetchone()
-        product["product_id"] = ["product_id"]
-        product["name"] = ["name"]
-        product["category"] = ["category"]
-        product["price"] = ["price"]
-        product["description"] = ["description"]
-        product["stock_count"] = ["stock_count"]
+        product["product_id"] = row["product_id"]
+        product["name"] = row["name"]
+        product["category"] = row["category"]
+        product["price"] = row["price"]
+        product["description"] = row["description"]
+        product["stock_count"] = row["stock_count"]
     except:
         print(f"Failed to fetch product with id: {product_id}")
         product = {}

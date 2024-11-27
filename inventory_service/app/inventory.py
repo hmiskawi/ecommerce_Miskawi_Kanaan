@@ -9,7 +9,8 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 # Add a new product to the inventory
 @app.route('/inventory/add', methods=['POST'])
 def api_add_product():
-    return jsonify(insert_product())
+    product = request.get_json()
+    return jsonify(insert_product(product))
 
 # Update details of a product
 @app.route('/inventory/update', methods=['PUT'])
