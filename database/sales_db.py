@@ -1,5 +1,6 @@
 import sqlite3
 from customers_db import update_customer_wallet
+from inventory_db import get_product_by_id
 
 def connect_to_db():
     conn = sqlite3.connect('ecommerce.db')
@@ -27,24 +28,48 @@ def create_sales_table():
     finally:
         conn.close()
 
+def product_sold(product_id):
+    updated_product = {}
+    try:
+        product = get_product_by_id(product_id)
+        conn = connect_to_db()
+        cur = conn.cursor()
+        new_stock_count = product["stock_count"] - 1
+        cur.execute("UPDATE Inventory SET stock_count = ? WHERE product_id = ?", (new_stock_count, product['product_id']))
+        conn.commit()
+        updated_product = get_product_by_id(product["product_id"])
+    except:
+        print("Update failed.")
+        conn.rollback()
+        updated_product = {}
+    finally:
+        conn.close() 
+    return updated_product
+
 def insert_sale(sale):
     inserted_sale = {}
     try:
         conn = connect_to_db()
         cur = conn.cursor()
         cur.execute("SELECT wallet_balance, username FROM Customers WHERE customer_id = ?", (sale["customer_id"]))
+        cur.commit()
         row = cur.fetchone()
         customer_balance = row["wallet_balance"]
         customer_username = row["username"]
-        if customer_balance >= sale["total_price"]:
+        cur.execute("SELECT quantity FROM Inventory WHERE product_id = ?", (sale["product_id"]))
+        cur.commit()
+        row = cur.fetchone()
+        quantity = row["quantity"]
+        if customer_balance >= sale["total_price"] and quantity >= sale["quantity"]:
             cur.execute("INSERT INTO Sales (customer_id, product_id, quantity, total_price) VALUES (?, ?, ?, ?)", (sale['customer_id'], sale['product_id'], sale['quantity'], sale['total_price']) )
             conn.commit()
             amount = sale["total_price"]
             update_customer_wallet(customer_username, -amount)
+            product_sold(sale["product_id"])
             inserted_sale = get_sale_by_id(cur.lastrowid)
         else:
             inserted_sale = {}
-            print("Customer does not have enough balance")
+            print("Customer does not have enough balance, or the product is out of stock.")
     except:
         print("Insertion failed.")
         conn().rollback()

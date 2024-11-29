@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS 
 
 from database.reviews_db import create_reviews_table, create_moderation_table, approve_review, reject_review, update_review, delete_review, get_product_reviews, get_customer_reviews, get_review_by_id, submit_review
-from decorators import login_required, admin_required
+from shared.decorators import login_required, admin_required
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
