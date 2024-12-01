@@ -1,209 +1,183 @@
 import sqlite3
+import logging
+from contextlib import contextmanager
 from customers_db import update_customer_wallet
 from inventory_db import get_product_by_id
 
+# Configure logging
+logging.basicConfig(level=logging.ERROR)
+logger = logging.getLogger(__name__)
+
 def connect_to_db():
-    conn = sqlite3.connect('ecommerce.db')
-    return conn
+    """
+    Establishes a connection to the SQLite database.
+
+    :return: SQLite connection object.
+    :rtype: sqlite3.Connection
+    """
+    return sqlite3.connect('ecommerce.db', detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
+
+@contextmanager
+def get_db_connection():
+    """
+    Provides a context-managed database connection.
+
+    :yield: SQLite connection object.
+    :rtype: sqlite3.Connection
+    """
+    conn = connect_to_db()
+    try:
+        yield conn
+    finally:
+        conn.close()
 
 def create_sales_table():
+    """
+    Creates the Sales table in the database if it does not already exist.
+    """
     try:
-        conn = connect_to_db()
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS Sales (
-                sale_id INTEGER PRIMARY KEY NOT NULL,
-                customer_id INT NOT NULL,
-                product_id INT NOT NULL,
-                quantity INT NOT NULL,
-                total_price DECIMAL(10, 2),
-                order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (customer_id) REFERENCES Customers(customer_id),
-                FOREIGN KEY (product_id) REFERENCES Inventory(product_id)
-            );
-        ''')
-        conn.commit()
-        print('Sales table created successfully.')
-    except:
-        print('An error occured while creating the sales table.')
-    finally:
-        conn.close()
-
-def product_sold(product_id):
-    updated_product = {}
-    try:
-        product = get_product_by_id(product_id)
-        conn = connect_to_db()
-        cur = conn.cursor()
-        new_stock_count = product["stock_count"] - 1
-        cur.execute("UPDATE Inventory SET stock_count = ? WHERE product_id = ?", (new_stock_count, product['product_id']))
-        conn.commit()
-        updated_product = get_product_by_id(product["product_id"])
-    except:
-        print("Update failed.")
-        conn.rollback()
-        updated_product = {}
-    finally:
-        conn.close() 
-    return updated_product
+        with get_db_connection() as conn:
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS Sales (
+                    sale_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    customer_id INTEGER NOT NULL,
+                    product_id INTEGER NOT NULL,
+                    quantity INTEGER NOT NULL,
+                    total_price REAL NOT NULL,
+                    order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (customer_id) REFERENCES Customers(customer_id),
+                    FOREIGN KEY (product_id) REFERENCES Inventory(product_id)
+                );
+            ''')
+            conn.commit()
+            logger.info('Sales table created successfully.')
+    except Exception as e:
+        logger.error(f"Failed to create sales table: {e}")
 
 def insert_sale(sale):
-    inserted_sale = {}
+    """
+    Inserts a new sale into the Sales table.
+
+    :param sale: A dictionary containing the sale details.
+    :type sale: dict
+    :return: The inserted sale details or an empty dictionary on failure.
+    :rtype: dict
+    """
     try:
-        conn = connect_to_db()
-        cur = conn.cursor()
-        cur.execute("SELECT wallet_balance, username FROM Customers WHERE customer_id = ?", (sale["customer_id"]))
-        cur.commit()
-        row = cur.fetchone()
-        customer_balance = row["wallet_balance"]
-        customer_username = row["username"]
-        cur.execute("SELECT quantity FROM Inventory WHERE product_id = ?", (sale["product_id"]))
-        cur.commit()
-        row = cur.fetchone()
-        quantity = row["quantity"]
-        if customer_balance >= sale["total_price"] and quantity >= sale["quantity"]:
-            cur.execute("INSERT INTO Sales (customer_id, product_id, quantity, total_price) VALUES (?, ?, ?, ?)", (sale['customer_id'], sale['product_id'], sale['quantity'], sale['total_price']) )
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+
+            # Fetch customer balance and product stock
+            cur.execute('SELECT wallet_balance, username FROM Customers WHERE customer_id = ?', (sale['customer_id'],))
+            customer = cur.fetchone()
+            if not customer:
+                logger.error("Customer not found")
+                return {}
+
+            cur.execute('SELECT stock_count, price FROM Inventory WHERE product_id = ?', (sale['product_id'],))
+            product = cur.fetchone()
+            if not product:
+                logger.error("Product not found")
+                return {}
+
+            # Validate balance and stock
+            if customer['wallet_balance'] < sale['total_price']:
+                logger.error("Insufficient balance")
+                return {}
+            if product['stock_count'] < sale['quantity']:
+                logger.error("Insufficient stock")
+                return {}
+
+            # Process sale
+            cur.execute('''
+                INSERT INTO Sales (customer_id, product_id, quantity, total_price)
+                VALUES (?, ?, ?, ?)
+            ''', (sale['customer_id'], sale['product_id'], sale['quantity'], sale['total_price']))
             conn.commit()
-            amount = sale["total_price"]
-            update_customer_wallet(customer_username, -amount)
-            product_sold(sale["product_id"])
-            inserted_sale = get_sale_by_id(cur.lastrowid)
-        else:
-            inserted_sale = {}
-            print("Customer does not have enough balance, or the product is out of stock.")
-    except:
-        print("Insertion failed.")
-        conn().rollback()
-    finally:
-        conn.close()
-    return inserted_sale
 
-def update_sale(sale):
-    updated_sale = {}
-    try:
-        conn = connect_to_db()
-        cur = conn.cursor()
-        cur.execute("UPDATE Sales SET customer_id = ?, product_id = ?, quantity = ?, total_price = ?, order_date = ? WHERE sale_id = ?", (sale['customer_id'], sale['product_id'], sale['quantity'], sale['total_price'], sale['order_date'], sale['sale_id']))
-        conn.commit()
-        updated_sale = get_sale_by_id(sale["sale_id"])
-    except:
-        print("Update failed.")
-        conn.rollback()
-        updated_sale = {}
-    finally:
-        conn.close() 
-    return updated_sale
+            # Update wallet and stock
+            update_customer_wallet(customer['username'], -sale['total_price'])
+            cur.execute('UPDATE Inventory SET stock_count = stock_count - ? WHERE product_id = ?', 
+                        (sale['quantity'], sale['product_id']))
+            conn.commit()
 
-def delete_sale(sale_id):
-    message = {}
-    try:
-        conn = connect_to_db()
-        conn.execute("DELETE from Sales WHERE sale_id = ?",(sale_id,))
-        conn.commit()
-        message["status"] = "Sale deleted successfully"
-    except:
-        print("Deletion failed.")
-        conn.rollback()
-        message["status"] = "Cannot delete sale"
-    finally:
-        conn.close()
-    return message
-
-def get_sales():
-    sales = []
-    try:
-        conn = connect_to_db()
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM Sales")
-        rows = cur.fetchall()
-        for i in rows:
-            sale = {}
-            sale["sale_id"] = i["sale_id"]
-            sale["customer_id"] = i["customer_id"]
-            sale["product_id"] = i["product_id"]
-            sale["quantity"] = i["quantity"]
-            sale["total_price"] = i["total_price"]
-            sale["order_date"] = i["order_date"]
-            sales.append(sale)
-    except:
-        print("Failed to fetch all sales.")
-        sales = []
-    return sales
+            return get_sale_by_id(cur.lastrowid)
+    except Exception as e:
+        logger.error(f"Failed to insert sale: {e}")
+        return {}
 
 def get_sale_by_id(sale_id):
-    sale = {}
+    """
+    Retrieves a sale by its ID.
+
+    :param sale_id: ID of the sale to retrieve.
+    :type sale_id: int
+    :return: The sale details or an empty dictionary if not found.
+    :rtype: dict
+    """
     try:
-        conn = connect_to_db()
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM Sales WHERE sale_id = ?",(sale_id,))
-        row = cur.fetchone()
-        sale["sale_id"] = row["sale_id"]
-        sale["customer_id"] = row["customer_id"]
-        sale["product_id"] = row["product_id"]
-        sale["quantity"] = row["quantity"]
-        sale["total_price"] = row["total_price"]
-        sale["order_date"] = row["order_date"]
-    except:
-        print(f"Failed to fetch sale with id: {sale_id}")
-        sale = {}
-    return sale
+        with get_db_connection() as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM Sales WHERE sale_id = ?", (sale_id,))
+            row = cur.fetchone()
+            return dict(row) if row else {}
+    except Exception as e:
+        logger.error(f"Failed to fetch sale by ID: {e}")
+        return {}
 
 def display_goods():
-    products = []
+    """
+    Retrieves all goods available for sale (name and price).
+
+    :return: A list of goods.
+    :rtype: list
+    """
     try:
-        conn = connect_to_db()
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM Inventory")
-        rows = cur.fetchall()
-        for i in rows:
-            product = {}
-            product["name"] = i["name"]
-            product["price"] = i["price"]
-            products.append(product)
-    except:
-        print("Failed to fetch all products.")
-        products = []
-    return products
+        with get_db_connection() as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            cur.execute("SELECT name, price FROM Inventory")
+            return [dict(row) for row in cur.fetchall()]
+    except Exception as e:
+        logger.error(f"Failed to fetch goods: {e}")
+        return []
 
 def display_good_detail(product_id):
-    product = {}
+    """
+    Retrieves detailed information about a specific product.
+
+    :param product_id: ID of the product to retrieve.
+    :type product_id: int
+    :return: The product details or an empty dictionary if not found.
+    :rtype: dict
+    """
     try:
-        conn = connect_to_db()
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM Inventory WHERE product_id = ?",(product_id,))
-        row = cur.fetchone()
-        product["product_id"] = row["product_id"]
-        product["name"] = row["name"]
-        product["category"] = row["category"]
-        product["price"] = row["price"]
-        product["description"] = row["description"]
-        product["stock_count"] = row["stock_count"]
-    except:
-        print(f"Failed to fetch product with id: {product_id}")
-        product = {}
-    return product
+        with get_db_connection() as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM Inventory WHERE product_id = ?", (product_id,))
+            row = cur.fetchone()
+            return dict(row) if row else {}
+    except Exception as e:
+        logger.error(f"Failed to fetch product details: {e}")
+        return {}
 
 def display_customer_sales(customer_id):
-    sales = []
+    """
+    Retrieves all sales made by a specific customer.
+
+    :param customer_id: ID of the customer.
+    :type customer_id: int
+    :return: A list of sales made by the customer.
+    :rtype: list
+    """
     try:
-        conn = connect_to_db()
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM Sales WHERE customer_id = ?", (customer_id))
-        rows = cur.fetchall()
-        for i in rows:
-            sale = {}
-            sale["sale_id"] = i["sale_id"]
-            sale["customer_id"] = i["customer_id"]
-            sale["product_id"] = i["product_id"]
-            sale["quantity"] = i["quantity"]
-            sale["total_price"] = i["total_price"]
-            sale["order_date"] = i["order_date"]
-            sales.append(sale)
-    except:
-        print(f"Failed to fetch all sales of customer: {customer_id}.")
-        sales = []
-    return sales
+        with get_db_connection() as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM Sales WHERE customer_id = ?", (customer_id,))
+            return [dict(row) for row in cur.fetchall()]
+    except Exception as e:
+        logger.error(f"Failed to fetch customer sales: {e}")
+        return []
