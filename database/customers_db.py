@@ -1,3 +1,4 @@
+from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 import logging
 from contextlib import contextmanager
@@ -63,6 +64,7 @@ def insert_customer(customer):
     :return: The inserted customer's details.
     :rtype: dict
     """
+    hashed_password = generate_password_hash(customer['password'], method='sha256')
     try:
         with get_db_connection() as conn:
             cur = conn.cursor()
@@ -71,7 +73,7 @@ def insert_customer(customer):
                 (first_name, last_name, username, password, age, address, gender, marital_status, wallet_balance) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
-                customer['first_name'], customer['last_name'], customer['username'], customer['password'], 
+                customer['first_name'], customer['last_name'], customer['username'], hashed_password, 
                 customer['age'], customer.get('address'), customer.get('gender'), 
                 customer.get('marital_status'), customer.get('wallet_balance', 0.0)
             ))
@@ -91,6 +93,9 @@ def update_customer(customer):
     :rtype: dict
     """
     try:
+        if 'password' in customer and customer['password']:
+            customer['password'] = generate_password_hash(customer['password'], method='sha256')
+            
         with get_db_connection() as conn:
             cur = conn.cursor()
             cur.execute('''
@@ -126,6 +131,22 @@ def delete_customer(customer_id):
     except Exception as e:
         logger.error(f"Deletion failed: {e}")
         return {"error": "Cannot delete customer"}
+        
+def verify_password(username, input_password):
+    """
+    Verifies a user's password by comparing the hashed value in the database.
+    :param username: The username of the customer.
+    :param input_password: The plaintext password to verify.
+    :return: True if the password matches, otherwise False.
+    """
+    try:
+        customer = get_customer_by_username(username)
+        if not customer:
+            return {"error": "Customer not found"}
+        return check_password_hash(customer['password'], input_password)
+    except Exception as e:
+        logger.error(f"Password verification failed: {e}")
+        return {"error": "Verification failed"}
 
 def get_customers():
     """
