@@ -1,0 +1,54 @@
+version: '3.9'
+
+services:
+  service1:
+    build:
+      context: ./customers_service
+    container_name: customers_service
+    ports:
+      - "5001:5000"  # Expose service on localhost
+    volumes:
+      - sqlite-data:/database  # Shared volume
+    environment:
+      SQLITE_DB_PATH: /database/mydatabase.sqlite
+
+  service2:
+    build:
+      context: ./inventory_service
+    container_name: inventory_service
+    ports:
+      - "5002:5000"
+    volumes:
+      - sqlite-data:/database
+    environment:
+      SQLITE_DB_PATH: /database/mydatabase.sqlite
+
+  service3:
+    build:
+      context: ./reviews_service
+    container_name: reviews_service
+    ports:
+      - "5003:5000"
+    volumes:
+      - sqlite-data:/database
+    environment:
+      SQLITE_DB_PATH: /database/mydatabase.sqlite
+
+  service4:
+    build:
+      context: ./sales_service
+    container_name: sales_service
+    ports:
+      - "5004:5000"
+    volumes:
+      - sqlite-data:/database
+    environment:
+      SQLITE_DB_PATH: /database/mydatabase.sqlite
+
+volumes:
+  sqlite-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./database  # Bind local data directory to the volume
