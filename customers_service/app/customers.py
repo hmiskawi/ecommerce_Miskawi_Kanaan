@@ -48,13 +48,13 @@ def api_get_customer_by_id(customer_id):
 @app.route('/customers/<username>/charge/<amount>', methods=['POST'])
 @admin_required
 def api_charge_customer(username, amount):
-    return jsonify(update_customer_wallet(username, amount))
+    return jsonify(update_customer_wallet(username, int(amount)))
 
 # Deduct funds from the customer’s wallet
 @app.route('/customers/<username>/deduct/<amount>', methods=['POST'])
 @admin_required
 def api_deduct_customer(username, amount):
-    neg_amount = -(amount)
+    neg_amount = -(int(amount))
     return jsonify(update_customer_wallet(username, neg_amount))
 
 if __name__ == "__main__":
