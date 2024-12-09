@@ -6,6 +6,10 @@ from database.customers_db import create_customers_table, insert_customer, updat
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({"status": "healthy"}), 200
+    
 # Register a new customer with full details
 @app.route('/customers/register', methods=['POST'])
 @login_required
