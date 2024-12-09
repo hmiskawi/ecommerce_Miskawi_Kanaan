@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  database:
+    image: nouchka/sqlite3:latest  # Lightweight SQLite container
+    container_name: database
+    volumes:
+      - ./database/ecommerce.db:/data/ecommerce.db
+    ports:
+      - "5000:5000"
+    command: ["sqlite3", "/data/ecommerce.db"]
+    healthcheck:
+      test: ["CMD", "sqlite3", "/data/ecommerce.db", "SELECT 1;"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  customer_service:
+    build:
+      context: ./customer_service
+    container_name: customer_service
+    ports:
+      - "5001:5001"
+    depends_on:
+      - database
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    environment:
+      - DATABASE_URL=sqlite:///data/ecommerce.db
+    networks:
+      - ecommerce_network
+
+  inventory_service:
+    build:
+      context: ./inventory_service
+    container_name: inventory_service
+    ports:
+      - "5002:5002"
+    depends_on:
+      - database
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - ecommerce_network
+
+  reviews_service:
+    build:
+      context: ./reviews_service
+    container_name: reviews_service
+    ports:
+      - "5003:5003"
+    depends_on:
+      - database
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5003/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - ecommerce_network
+
+  sales_service:
+    build:
+      context: ./sales_service
+    container_name: sales_service
+    ports:
+      - "5004:5004"
+    depends_on:
+      - database
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5004/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - ecommerce_network
+
+networks:
+  ecommerce_network:
+    driver: bridge
