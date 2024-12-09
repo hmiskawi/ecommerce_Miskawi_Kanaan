@@ -6,6 +6,10 @@ from database.sales_db import create_sales_table, insert_sale, update_sale, dele
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({"status": "healthy"}), 200
+
 # Get a list of all products available for sale (name, price)
 @app.route('/sales/products', methods=['GET'])
 def api_get_products():
