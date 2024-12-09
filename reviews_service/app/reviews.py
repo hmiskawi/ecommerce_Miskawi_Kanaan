@@ -7,6 +7,10 @@ from shared.decorators import login_required, admin_required
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({"status": "healthy"}), 200
+    
 # Submit a review for a product which can be approved or denied by an admin
 @app.route('/reviews/submit', methods=['POST'])
 @login_required
