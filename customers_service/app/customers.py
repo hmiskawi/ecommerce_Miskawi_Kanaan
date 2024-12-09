@@ -53,7 +53,7 @@ def api_charge_customer(username, amount):
 # Deduct funds from the customer’s wallet
 @app.route('/customers/<username>/deduct/<amount>', methods=['POST'])
 @admin_required
-def api_charge_customer(username, amount):
+def api_deduct_customer(username, amount):
     neg_amount = -(amount)
     return jsonify(update_customer_wallet(username, neg_amount))
 
