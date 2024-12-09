@@ -6,6 +6,10 @@ from database.inventory_db import create_inventory_table, insert_product, update
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({"status": "healthy"}), 200
+
 # Add a new product to the inventory
 @app.route('/inventory/add', methods=['POST'])
 @admin_required
