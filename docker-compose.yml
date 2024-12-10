@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  database:
+    build:
+      context: ./database  # Ensure this is pointing to the correct build context
+    container_name: database
+    volumes:
+      - ./database/ecommerce_db.py:/app/ecommerce_db.py  # Mount the Python file with DB functions
+      - ./database/ecommerce.db:/app/ecommerce.db  # Mount the SQLite DB file
+    ports:
+      - "5000:5000"
+    #command: ["python", "/app/ecommerce_db.py"]  # Run the Python file to interact with the DB
+    healthcheck:
+      test: ["CMD", "sqlite3", "/app/ecommerce.db", "SELECT 1;"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  customers_service:
+    build:
+      context: ./customers_service/app
+    container_name: customers_service
+    ports:
+      - "5001:5001"
+      - "5005:5005"
+    depends_on:
+      - database
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    environment:
+      - DATABASE_SERVICE_URL=http://database:5000
+    networks:
+      - ecommerce_network
+
+  inventory_service:
+    build:
+      context: ./inventory_service/app
+    container_name: inventory_service
+    ports:
+      - "5002:5002"
+    depends_on:
+      - database
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    environment:
+      - DATABASE_SERVICE_URL=http://database:5000
+    networks:
+      - ecommerce_network
+
+  reviews_service:
+    build:
+      context: ./reviews_service/app
+    container_name: reviews_service
+    ports:
+      - "5003:5003"
+      - "5006:5006"
+    depends_on:
+      - database
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5003/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    environment:
+      - DATABASE_SERVICE_URL=http://database:5000
+    networks:
+      - ecommerce_network
+
+  sales_service:
+    build:
+      context: ./sales_service/app
+    container_name: sales_service
+    ports:
+      - "5004:5004"
+    depends_on:
+      - database
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5004/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    environment:
+      - DATABASE_SERVICE_URL=http://database:5000
+    networks:
+      - ecommerce_network
+
+networks:
+  ecommerce_network:
+    driver: bridge
