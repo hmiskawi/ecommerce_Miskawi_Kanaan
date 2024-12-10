@@ -1,30 +1,51 @@
-import logging
+import cProfile
+import pstats
+import io
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
+import logging
 
-# Base URL for the database service
 DATABASE_SERVICE_URL = "http://database:5000"
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-logger = logging.getLogger("WishlistService")
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("InventoryService")
+
+
+def profile_function(func):
+    """
+    A decorator to profile the execution time of a function using cProfile.
+    """
+    def wrapper(*args, **kwargs):
+        profiler = cProfile.Profile()
+        profiler.enable()
+        result = func(*args, **kwargs)
+        profiler.disable()
+
+        # Save stats to a stream
+        stream = io.StringIO()
+        stats = pstats.Stats(profiler, stream=stream)
+        stats.strip_dirs()
+        stats.sort_stats('cumulative')
+        stats.print_stats(10)  # Print top 10 cumulative time functions
+
+        logger.info("Profiling results:\n%s", stream.getvalue())
+        return result
+    return wrapper
 
 @app.route('/health', methods=['GET'])
+@profile_function
+@profile
 def health_check():
-    """
-    Health check endpoint to ensure the service is up.
-
-    Returns:
-        Response: JSON indicating the health status of the service.
-    """
     logger.info("Health check requested")
     return jsonify({"status": "healthy"}), 200
 
 @app.route('/customers/wishlist/add', methods=['POST'])
+@profile_function
+@profile
 def api_add_wish():
     """
     Add a product to the customer’s wishlist.
@@ -45,6 +66,8 @@ def api_add_wish():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/customers/wishlist/remove/<customer_id>/<product_id>', methods=['DELETE'])
+@profile_function
+@profile
 def api_remove_wish(customer_id, product_id):
     """
     Remove a product from the customer’s wishlist.
@@ -84,6 +107,8 @@ def api_get_wishes(customer_id):
         return jsonify({"error": str(e)}), 500
 
 @app.route('/customers/wishlist/notify/<customer_id>', methods=['POST'])
+@profile_function
+@profile
 def api_notify_customer(customer_id):
     """
     Notify the customer about abandoned wishlist items.
