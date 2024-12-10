@@ -1,17 +1,14 @@
-# Use a lightweight Python image
-FROM python:3.9-slim
+# Use a lightweight base image with SQLite
+FROM alpine:latest
 
-# Set the working directory in the container
+# Install SQLite
+RUN apk add --no-cache sqlite
+
+# Set the working directory
 WORKDIR /app
 
-# Copy all the application files into the container
-COPY . /app
+# Copy the database file into the container
+COPY ./ecommerce.db /app/ecommerce.db
 
-# Install dependencies
-RUN pip install --no-cache-dir flask flask-cors werkzeug
-
-# Expose the port the app runs on
-EXPOSE 5000
-
-# Initialize the database on container startup
-CMD ["python", "ecommerce_db.py"]
+# Command to start SQLite in server mode (if applicable)
+CMD ["sqlite3", "/app/ecommerce.db"]
