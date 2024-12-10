@@ -1,34 +1,50 @@
-import logging
+import cProfile
+import pstats
+import io
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
+import logging
 
-# Base URL for the database service
 DATABASE_SERVICE_URL = "http://database:5000"
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger("SalesService")
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("InventoryService")
+
+
+def profile_function(func):
+    """
+    A decorator to profile the execution time of a function using cProfile.
+    """
+    def wrapper(*args, **kwargs):
+        profiler = cProfile.Profile()
+        profiler.enable()
+        result = func(*args, **kwargs)
+        profiler.disable()
+
+        # Save stats to a stream
+        stream = io.StringIO()
+        stats = pstats.Stats(profiler, stream=stream)
+        stats.strip_dirs()
+        stats.sort_stats('cumulative')
+        stats.print_stats(10)  # Print top 10 cumulative time functions
+
+        logger.info("Profiling results:\n%s", stream.getvalue())
+        return result
+    return wrapper
 
 @app.route('/health', methods=['GET'])
+@profile_function
 def health_check():
-    """
-    Health check endpoint.
-
-    Returns:
-        Response: JSON indicating the health status of the service.
-        Example: {"status": "healthy"}
-    """
     logger.info("Health check requested")
     return jsonify({"status": "healthy"}), 200
 
 @app.route('/sales/products', methods=['GET'])
+@profile
+@profile_function
 def api_get_products():
     """
     Get a list of all products available for sale (name, price).
@@ -45,6 +61,8 @@ def api_get_products():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/sales/products/<product_id>', methods=['GET'])
+@profile
+@profile_function
 def api_get_product_detail(product_id):
     """
     Get detailed information about a specific product.
@@ -64,6 +82,8 @@ def api_get_product_detail(product_id):
         return jsonify({"error": str(e)}), 500
 
 @app.route('/sales/purchase', methods=['POST'])
+@profile
+@profile_function
 def api_process_sale():
     """
     Process a sale.
@@ -88,6 +108,8 @@ def api_process_sale():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/sales/history/<customer_id>', methods=['GET'])
+@profile
+@profile_function
 def api_purchase_history(customer_id):
     """
     Get the purchase history for a specific customer.
