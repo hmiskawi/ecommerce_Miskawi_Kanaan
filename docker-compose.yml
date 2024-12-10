@@ -2,17 +2,16 @@ version: '3.8'
 
 services:
   database:
-    image: nouchka/sqlite3:latest # Lightweight SQLite container
     build:
       context: ./database  
     container_name: database
     volumes:
-      - ./database/ecommerce.db:/data/ecommerce.db
+      - ./database/ecommerce.db:/app/ecommerce.db
     ports:
       - "5000:5000"
     command: ["sqlite3", "/data/ecommerce.db"]
     healthcheck:
-      test: ["CMD", "sqlite3", "/data/ecommerce.db", "SELECT 1;"]
+      test: ["CMD", "sqlite3", "/app/ecommerce.db", "SELECT 1;"]
       interval: 30s
       timeout: 5s
       retries: 3
