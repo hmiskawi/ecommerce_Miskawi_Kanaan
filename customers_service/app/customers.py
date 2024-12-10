@@ -1,30 +1,51 @@
-import logging
+import cProfile
+import pstats
+import io
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
+import logging
 
-# Base URL for the database service
 DATABASE_SERVICE_URL = "http://database:5000"
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-logger = logging.getLogger("CustomerService")
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("InventoryService")
+
+
+def profile_function(func):
+    """
+    A decorator to profile the execution time of a function using cProfile.
+    """
+    def wrapper(*args, **kwargs):
+        profiler = cProfile.Profile()
+        profiler.enable()
+        result = func(*args, **kwargs)
+        profiler.disable()
+
+        # Save stats to a stream
+        stream = io.StringIO()
+        stats = pstats.Stats(profiler, stream=stream)
+        stats.strip_dirs()
+        stats.sort_stats('cumulative')
+        stats.print_stats(10)  # Print top 10 cumulative time functions
+
+        logger.info("Profiling results:\n%s", stream.getvalue())
+        return result
+    return wrapper
 
 @app.route('/health', methods=['GET'])
+@profile_function
+@profile
 def health_check():
-    """
-    Health check endpoint to ensure the service is up.
-
-    Returns:
-        Response: JSON indicating the health status of the service.
-    """
     logger.info("Health check requested")
     return jsonify({"status": "healthy"}), 200
 
 @app.route('/customers/register', methods=['POST'])
+@profile_function
+@profile
 def api_register_customer():
     """
     Register a new customer with full details.
@@ -45,6 +66,8 @@ def api_register_customer():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/customers/delete/<customer_id>', methods=['DELETE'])
+@profile_function
+@profile
 def api_delete_customer(customer_id):
     """
     Delete a customer by their ID.
@@ -84,6 +107,8 @@ def api_update_customer():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/customers', methods=['GET'])
+@profile_function
+@profile
 def api_get_customers():
     """
     Get a list of all customers.
@@ -100,6 +125,8 @@ def api_get_customers():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/customers/username/<username>', methods=['GET'])
+@profile_function
+@profile
 def api_get_customer_by_username(username):
     """
     Get details of a specific customer by username.
@@ -138,6 +165,8 @@ def api_get_customer_by_id(customer_id):
         return jsonify({"error": str(e)}), 500
 
 @app.route('/customers/<username>/charge/<amount>', methods=['POST'])
+@profile_function
+@profile
 def api_charge_customer(username, amount):
     """
     Add funds to the customer's wallet.
@@ -158,6 +187,8 @@ def api_charge_customer(username, amount):
         return jsonify({"error": str(e)}), 500
 
 @app.route('/customers/<username>/deduct/<amount>', methods=['POST'])
+@profile_function
+@profile
 def api_deduct_customer(username, amount):
     """
     Deduct funds from the customer's wallet.
