@@ -1,34 +1,64 @@
-import logging
+import cProfile
+import pstats
+import io
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
+import logging
 
-# Base URL for the database service
 DATABASE_SERVICE_URL = "http://database:5000"
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("InventoryService")
 
-@app.route('/health', methods=['GET'])
-def health_check():
-    """
-    Health check endpoint.
 
-    Returns:
-        Response: JSON indicating the health status of the service.
-        Example: {"status": "healthy"}
+def profile_function(func):
     """
+    A decorator to profile the execution time of a function using cProfile.
+    """
+    def wrapper(*args, **kwargs):
+        profiler = cProfile.Profile()
+        profiler.enable()
+        result = func(*args, **kwargs)
+        profiler.disable()
+
+        # Save stats to a stream
+        stream = io.StringIO()
+        stats = pstats.Stats(profiler, stream=stream)
+        stats.strip_dirs()
+        stats.sort_stats('cumulative')
+        stats.print_stats(10)  # Print top 10 cumulative time functions
+
+        logger.info("Profiling results:\n%s", stream.getvalue())
+        return result
+    return wrapper
+
+@app.route('/health', methods=['GET'])
+@profile_function
+@profile
+def health_check():
     logger.info("Health check requested")
     return jsonify({"status": "healthy"}), 200
 
+# Add @profile_function to other endpoints for profiling
+@app.route('/inventory', methods=['GET'])
+@profile_function
+def api_get_products():
+    try:
+        logger.info("Fetching all products")
+        response = requests.get(f"{DATABASE_SERVICE_URL}/inventory")
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        logger.error("Error fetching products: %s", str(e))
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/inventory/add', methods=['POST'])
+@profile_function
+@profile
 def api_add_product():
     """
     Add a new product to the inventory.
@@ -98,21 +128,6 @@ def api_delete_product(product_id):
         logger.error("Error deleting product: %s", str(e))
         return jsonify({"error": str(e)}), 500
 
-@app.route('/inventory', methods=['GET'])
-def api_get_products():
-    """
-    Get a list of all products in the inventory.
-
-    Returns:
-        Response: JSON list of products with details (e.g., name, price, stock).
-    """
-    try:
-        logger.info("Fetching all products")
-        response = requests.get(f"{DATABASE_SERVICE_URL}/inventory")
-        return jsonify(response.json()), response.status_code
-    except requests.exceptions.RequestException as e:
-        logger.error("Error fetching products: %s", str(e))
-        return jsonify({"error": str(e)}), 500
 
 @app.route('/inventory/<product_id>', methods=['GET'])
 def api_get_product_by_id(product_id):
