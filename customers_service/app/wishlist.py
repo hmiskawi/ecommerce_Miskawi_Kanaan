@@ -1,36 +1,107 @@
+import logging
 from flask import Flask, request, jsonify
-from flask_cors import CORS 
-from shared.decorators import login_required, admin_required
-from database.wishlist_db import create_wishlist_table, insert_wish, delete_wish, get_wishes, notify_abandoned_wishlist
+from flask_cors import CORS
+import requests
+
+# Base URL for the database service
+DATABASE_SERVICE_URL = "http://database:5000"
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-# Add a product to the customer’s wishlist
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logger = logging.getLogger("WishlistService")
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    """
+    Health check endpoint to ensure the service is up.
+
+    Returns:
+        Response: JSON indicating the health status of the service.
+    """
+    logger.info("Health check requested")
+    return jsonify({"status": "healthy"}), 200
+
 @app.route('/customers/wishlist/add', methods=['POST'])
-@login_required
 def api_add_wish():
+    """
+    Add a product to the customer’s wishlist.
+
+    Request Body:
+        dict: JSON containing customer_id and product_id.
+
+    Returns:
+        Response: JSON confirmation of the wish being added.
+    """
     wish = request.get_json()
-    return jsonify(insert_wish(wish))
+    try:
+        logger.info("Adding wish: %s", wish)
+        response = requests.post(f"{DATABASE_SERVICE_URL}/customers/wishlist/add", json=wish)
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        logger.error("Error adding wish: %s", str(e))
+        return jsonify({"error": str(e)}), 500
 
-# Remove a product from the customer’s wishlist
 @app.route('/customers/wishlist/remove/<customer_id>/<product_id>', methods=['DELETE'])
-@login_required
 def api_remove_wish(customer_id, product_id):
-    return jsonify(delete_wish(customer_id, product_id))
+    """
+    Remove a product from the customer’s wishlist.
 
-# Get all wishlist items for a customer
+    Args:
+        customer_id (str): The ID of the customer.
+        product_id (str): The ID of the product to be removed.
+
+    Returns:
+        Response: JSON confirmation of the wish being removed.
+    """
+    try:
+        logger.info("Removing wish for customer %s, product %s", customer_id, product_id)
+        response = requests.delete(f"{DATABASE_SERVICE_URL}/customers/wishlist/remove/{customer_id}/{product_id}")
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        logger.error("Error removing wish: %s", str(e))
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/customers/wishlist/<customer_id>', methods=['GET'])
-@login_required
 def api_get_wishes(customer_id):
-    return jsonify(get_wishes(customer_id))
+    """
+    Get all wishlist items for a customer.
 
-# Notify the customer about abandoned wishlist items
-@app.route('customers/wishlist/notify/<customer_id>', methods=['POST'])
-@admin_required
+    Args:
+        customer_id (str): The ID of the customer.
+
+    Returns:
+        Response: JSON list of products in the customer's wishlist.
+    """
+    try:
+        logger.info("Fetching wishlist for customer: %s", customer_id)
+        response = requests.get(f"{DATABASE_SERVICE_URL}/customers/wishlist/{customer_id}")
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        logger.error("Error fetching wishlist: %s", str(e))
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/customers/wishlist/notify/<customer_id>', methods=['POST'])
 def api_notify_customer(customer_id):
-    return jsonify(notify_abandoned_wishlist(customer_id))
+    """
+    Notify the customer about abandoned wishlist items.
+
+    Args:
+        customer_id (str): The ID of the customer to notify.
+
+    Returns:
+        Response: JSON confirmation of the notification.
+    """
+    try:
+        logger.info("Notifying customer %s about abandoned wishlist items", customer_id)
+        response = requests.post(f"{DATABASE_SERVICE_URL}/customers/wishlist/notify/{customer_id}")
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        logger.error("Error notifying customer: %s", str(e))
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    create_wishlist_table()
-    app.run(debug=True)
+    logger.info("Starting Wishlist Service")
+    app.run(host="0.0.0.0", port=5001, debug=True)
