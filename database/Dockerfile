@@ -1,15 +1,20 @@
-# Use Alpine as base image
-FROM alpine:latest
+# Use a Python base image
+FROM python:3.9-slim
 
-# Install Python and SQLite
-RUN apk add --no-cache python3 py3-pip sqlite
+# Install SQLite
+RUN apt-get update && apt-get install -y sqlite3 && rm -rf /var/lib/apt/lists/*
 
 # Set the working directory inside the container
 WORKDIR /app
 
-# Copy the database file and the Python script
-COPY ./ecommerce.db /app/ecommerce.db
-COPY ./ecommerce_db.py /app/ecommerce_db.py
+# Copy the requirements.txt file first (helps with caching)
+COPY requirements.txt /app/
+
+# Install the Python dependencies listed in requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of the application code into the container
+COPY . /app
 
 # Command to run the Python script that interacts with SQLite
-CMD ["python3", "/app/ecommerce_db.py"]
+CMD ["python", "/app/ecommerce_db.py"]

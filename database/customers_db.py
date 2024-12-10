@@ -9,24 +9,25 @@ def create_customers_table():
         conn = connect_to_db()
         conn.execute('''
             CREATE TABLE IF NOT EXISTS Customers (
-            customer_id INTEGER PRIMARY KEY NOT NULL,
-            first_name VARCHAR(255) NOT NULL,
-            last_name VARCHAR(255) NOT NULL,
-            username VARCHAR(100) NOT NULL UNIQUE,
-            password VARCHAR(255) NOT NULL,
-            age INTEGER,
-            address TEXT,
-            gender ENUM('M', 'F', 'O'),
-            marital_status ENUM('Single', 'Married', 'Other'),
-            wallet_balance DECIMAL(10, 2) DEFAULT 0.0,
+                customer_id INTEGER PRIMARY KEY NOT NULL,
+                first_name VARCHAR(255) NOT NULL,
+                last_name VARCHAR(255) NOT NULL,
+                username VARCHAR(100) NOT NULL UNIQUE,
+                password VARCHAR(255) NOT NULL,
+                age INTEGER,
+                address TEXT,
+                gender TEXT CHECK(gender IN ('M', 'F', 'O')),
+                marital_status TEXT CHECK(marital_status IN ('Single', 'Married', 'Other')),
+                wallet_balance DECIMAL(10, 2) DEFAULT 0.0
             );
         ''')
         conn.commit()
         print('Customers table created successfully.')
-    except:
-        print('An error occured while creating the customers table.')
+    except Exception as e:
+        print(f'An error occurred while creating the customers table: {e}')
     finally:
         conn.close()
+
 
 def insert_customer(customer):
     inserted_customer = {}

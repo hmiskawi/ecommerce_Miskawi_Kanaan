@@ -9,20 +9,21 @@ def create_inventory_table():
         conn = connect_to_db()
         conn.execute('''
             CREATE TABLE IF NOT EXISTS Inventory (
-            product_id INTEGER PRIMARY KEY NOT NULL,
-            name VARCHAR(255) NOT NULL,
-            category ENUM('Food', 'Clothes', 'Accessories', 'Electronics') NOT NULL,
-            price DECIMAL(10, 2) NOT NULL,
-            description TEXT,
-            stock_count INT DEFAULT 0
+                product_id INTEGER PRIMARY KEY NOT NULL,
+                name VARCHAR(255) NOT NULL,
+                category TEXT CHECK(category IN ('Food', 'Clothes', 'Accessories', 'Electronics')) NOT NULL,
+                price DECIMAL(10, 2) NOT NULL,
+                description TEXT,
+                stock_count INTEGER DEFAULT 0
             );
         ''')
         conn.commit()
         print('Inventory table created successfully.')
-    except:
-        print('An error occured while creating the inventory table.')
+    except Exception as e:
+        print(f'An error occurred while creating the inventory table: {e}')
     finally:
         conn.close()
+
 
 def insert_product(product):
     inserted_product = {}
