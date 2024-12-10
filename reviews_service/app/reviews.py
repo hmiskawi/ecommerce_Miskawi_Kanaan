@@ -1,69 +1,203 @@
+import logging
 from flask import Flask, request, jsonify
-from flask_cors import CORS 
+from flask_cors import CORS
+import requests
 
-from database.reviews_db import create_reviews_table, create_moderation_table, approve_review, reject_review, update_review, delete_review, get_product_reviews, get_customer_reviews, get_review_by_id, submit_review
-from shared.decorators import login_required, admin_required
+# Base URL for the database service
+DATABASE_SERVICE_URL = "http://database:5000"
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger("ReviewsService")
+
 @app.route('/health', methods=['GET'])
 def health_check():
+    """
+    Health check endpoint.
+
+    Returns:
+        Response: JSON indicating the health status of the service.
+        Example: {"status": "healthy"}
+    """
+    logger.info("Health check requested")
     return jsonify({"status": "healthy"}), 200
-    
-# Submit a review for a product which can be approved or denied by an admin
+
 @app.route('/reviews/submit', methods=['POST'])
-@login_required
 def api_submit_review():
-    review = request.get_json()
-    return jsonify(submit_review(review))
+    """
+    Submit a review for a product.
 
-# Update an existing review
+    The submitted review is stored in a moderation table for admin approval.
+
+    Request:
+        JSON object containing:
+            - customer_id (int): ID of the customer submitting the review.
+            - product_id (int): ID of the product being reviewed.
+            - rating (int): Rating score (1-5).
+            - comment (str): Review comment.
+
+    Returns:
+        Response: JSON with confirmation message or error details.
+    """
+    review = request.get_json()
+    try:
+        logger.info("Submitting a review: %s", review)
+        response = requests.post(f"{DATABASE_SERVICE_URL}/reviews/submit", json=review)
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        logger.error("Error submitting review: %s", str(e))
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/reviews/update', methods=['PUT'])
-@login_required
 def api_update_review():
-    review = request.get_json()
-    return jsonify(update_review(review))
+    """
+    Update an existing review.
 
-# Delete a specific review
+    Request:
+        JSON object containing:
+            - review_id (int): ID of the review to update.
+            - customer_id (int): ID of the customer who submitted the review.
+            - product_id (int): ID of the product being reviewed.
+            - rating (int): Updated rating score (1-5).
+            - comment (str): Updated review comment.
+
+    Returns:
+        Response: JSON with confirmation message or error details.
+    """
+    review = request.get_json()
+    try:
+        logger.info("Updating a review: %s", review)
+        response = requests.put(f"{DATABASE_SERVICE_URL}/reviews/update", json=review)
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        logger.error("Error updating review: %s", str(e))
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/reviews/delete/<review_id>', methods=['DELETE'])
-@login_required
 def api_delete_review(review_id):
-    return jsonify(delete_review(review_id))
+    """
+    Delete a specific review.
 
-# Get all reviews for a specific product
+    Args:
+        review_id (int): ID of the review to delete.
+
+    Returns:
+        Response: JSON with confirmation message or error details.
+    """
+    try:
+        logger.info("Deleting review with ID: %s", review_id)
+        response = requests.delete(f"{DATABASE_SERVICE_URL}/reviews/delete/{review_id}")
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        logger.error("Error deleting review: %s", str(e))
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/reviews/product/<product_id>', methods=['GET'])
-@login_required
 def api_get_product_reviews(product_id):
-    return jsonify(get_product_reviews(product_id))
+    """
+    Get all reviews for a specific product.
 
-# Get all reviews submitted by a specific customer
+    Args:
+        product_id (int): ID of the product to fetch reviews for.
+
+    Returns:
+        Response: JSON list of reviews for the specified product.
+    """
+    try:
+        logger.info("Fetching reviews for product ID: %s", product_id)
+        response = requests.get(f"{DATABASE_SERVICE_URL}/reviews/product/{product_id}")
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        logger.error("Error fetching product reviews: %s", str(e))
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/reviews/customer/<customer_id>', methods=['GET'])
-@login_required
 def api_get_customer_reviews(customer_id):
-    return jsonify(get_customer_reviews(customer_id))
+    """
+    Get all reviews submitted by a specific customer.
 
-# Moderate a review (approve)
+    Args:
+        customer_id (int): ID of the customer to fetch reviews for.
+
+    Returns:
+        Response: JSON list of reviews submitted by the customer.
+    """
+    try:
+        logger.info("Fetching reviews for customer ID: %s", customer_id)
+        response = requests.get(f"{DATABASE_SERVICE_URL}/reviews/customer/{customer_id}")
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        logger.error("Error fetching customer reviews: %s", str(e))
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/reviews/approve', methods=['POST'])
-@admin_required
 def api_approve_review():
-    review = request.get_json()
-    return jsonify(approve_review(review))
+    """
+    Approve a submitted review.
 
-# Moderate a review (flag)
+    Request:
+        JSON object containing:
+            - review_id (int): ID of the review to approve.
+
+    Returns:
+        Response: JSON with confirmation message or error details.
+    """
+    review = request.get_json()
+    try:
+        logger.info("Approving a review: %s", review)
+        response = requests.post(f"{DATABASE_SERVICE_URL}/reviews/approve", json=review)
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        logger.error("Error approving review: %s", str(e))
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/reviews/reject/<review_id>', methods=['DELETE'])
-@admin_required
-def api_reject_review():
-    review = request.get_json()
-    return jsonify(reject_review(review))
+def api_reject_review(review_id):
+    """
+    Reject (flag) a review.
 
-# Get details of a specific review
+    Args:
+        review_id (int): ID of the review to reject.
+
+    Returns:
+        Response: JSON with confirmation message or error details.
+    """
+    try:
+        logger.info("Rejecting review with ID: %s", review_id)
+        response = requests.delete(f"{DATABASE_SERVICE_URL}/reviews/reject/{review_id}")
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        logger.error("Error rejecting review: %s", str(e))
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/reviews/<review_id>', methods=['GET'])
-@login_required
 def api_get_specific_review(review_id):
-    return jsonify(get_review_by_id(review_id))
+    """
+    Get details of a specific review.
+
+    Args:
+        review_id (int): ID of the review to fetch.
+
+    Returns:
+        Response: JSON object with review details (e.g., rating, comment).
+    """
+    try:
+        logger.info("Fetching details for review ID: %s", review_id)
+        response = requests.get(f"{DATABASE_SERVICE_URL}/reviews/{review_id}")
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        logger.error("Error fetching review details: %s", str(e))
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    create_moderation_table()
-    create_reviews_table()
-    app.run(debug=True)
+    """
+    Starts the Reviews Service on port 5003.
+    """
+    logger.info("Starting Reviews Service")
+    app.run(host="0.0.0.0", port=5003, debug=True)
