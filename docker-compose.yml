@@ -2,7 +2,9 @@ version: '3.8'
 
 services:
   database:
-    image: nouchka/sqlite3:latest  # Lightweight SQLite container
+    image: nouchka/sqlite3:latest # Lightweight SQLite container
+    build:
+      context: ./database  
     container_name: database
     volumes:
       - ./database/ecommerce.db:/data/ecommerce.db
@@ -16,12 +18,13 @@ services:
       retries: 3
       start_period: 10s
 
-  customer_service:
+  customers_service:
     build:
-      context: ./customer_service
-    container_name: customer_service
+      context: ./customers_service/app
+    container_name: customers_service
     ports:
       - "5001:5001"
+      - "5005:5005"
     depends_on:
       - database
     healthcheck:
@@ -31,13 +34,13 @@ services:
       retries: 3
       start_period: 10s
     environment:
-      - DATABASE_URL=sqlite:///data/ecommerce.db
+      - DATABASE_SERVICE_URL=http://database:5000
     networks:
       - ecommerce_network
 
   inventory_service:
     build:
-      context: ./inventory_service
+      context: ./inventory_service/app
     container_name: inventory_service
     ports:
       - "5002:5002"
@@ -49,15 +52,18 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    environment:
+      - DATABASE_SERVICE_URL=http://database:5000
     networks:
       - ecommerce_network
 
   reviews_service:
     build:
-      context: ./reviews_service
+      context: ./reviews_service/app
     container_name: reviews_service
     ports:
       - "5003:5003"
+      - "5006:5006"
     depends_on:
       - database
     healthcheck:
@@ -66,12 +72,14 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    environment:
+      - DATABASE_SERVICE_URL=http://database:5000
     networks:
       - ecommerce_network
 
   sales_service:
     build:
-      context: ./sales_service
+      context: ./sales_service/app
     container_name: sales_service
     ports:
       - "5004:5004"
@@ -83,6 +91,8 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    environment:
+      - DATABASE_SERVICE_URL=http://database:5000
     networks:
       - ecommerce_network
 
