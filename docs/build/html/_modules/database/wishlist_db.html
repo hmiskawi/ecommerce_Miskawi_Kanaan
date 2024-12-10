@@ -1,0 +1,245 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>database.wishlist_db &mdash; ecommerce_Miskawi_Kanaan  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            ecommerce_Miskawi_Kanaan
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">ecommerce_Miskawi_Kanaan-new-feature</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ecommerce_Miskawi_Kanaan</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">database.wishlist_db</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for database.wishlist_db</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">sqlite3</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+
+<div class="viewcode-block" id="connect_to_db">
+<a class="viewcode-back" href="../../database.html#database.wishlist_db.connect_to_db">[docs]</a>
+<span class="k">def</span> <span class="nf">connect_to_db</span><span class="p">():</span>
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;ecommerce.db&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">conn</span></div>
+
+
+<div class="viewcode-block" id="create_wishlist_table">
+<a class="viewcode-back" href="../../database.html#database.wishlist_db.create_wishlist_table">[docs]</a>
+<span class="k">def</span> <span class="nf">create_wishlist_table</span><span class="p">():</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">connect_to_db</span><span class="p">()</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">            CREATE TABLE IF NOT EXISTS Wishes (</span>
+<span class="s1">            wish_id INT AUTO_INCREMENT PRIMARY KEY,</span>
+<span class="s1">            customer_id INT NOT NULL,</span>
+<span class="s1">            product_id INT NOT NULL,</span>
+<span class="s1">            quantity INT NOT NULL,</span>
+<span class="s1">            added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,</span>
+<span class="s1">            FOREIGN KEY (product_id) REFERENCES Inventory(product_id),</span>
+<span class="s1">            FOREIGN KEY (customer_id) REFERENCES Customers(customer_id)</span>
+<span class="s1">            );</span>
+<span class="s1">        &#39;&#39;&#39;</span><span class="p">)</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Wishlist table created successfully.&#39;</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;An error occured while creating the wishlist table.&#39;</span><span class="p">)</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="insert_wish">
+<a class="viewcode-back" href="../../database.html#database.wishlist_db.insert_wish">[docs]</a>
+<span class="k">def</span> <span class="nf">insert_wish</span><span class="p">(</span><span class="n">wish</span><span class="p">):</span>
+    <span class="n">inserted_wish</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">connect_to_db</span><span class="p">()</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;INSERT INTO Wishes (customer_id, product_id, quantity) VALUES (?, ?, ?)&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">wish</span><span class="p">[</span><span class="s1">&#39;customer_id&#39;</span><span class="p">],</span> <span class="n">wish</span><span class="p">[</span><span class="s2">&quot;product_id&quot;</span><span class="p">],</span> <span class="n">wish</span><span class="p">[</span><span class="s2">&quot;quantity&quot;</span><span class="p">])</span> <span class="p">)</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="n">inserted_wish</span> <span class="o">=</span> <span class="n">get_wish_by_id</span><span class="p">(</span><span class="n">cur</span><span class="o">.</span><span class="n">lastrowid</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Insertion failed.&quot;</span><span class="p">)</span>
+        <span class="n">conn</span><span class="p">()</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">inserted_wish</span></div>
+
+
+<div class="viewcode-block" id="delete_wish">
+<a class="viewcode-back" href="../../database.html#database.wishlist_db.delete_wish">[docs]</a>
+<span class="k">def</span> <span class="nf">delete_wish</span><span class="p">(</span><span class="n">customer_id</span><span class="p">,</span> <span class="n">product_id</span><span class="p">):</span>
+    <span class="n">message</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">connect_to_db</span><span class="p">()</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;DELETE from Wishes WHERE customer_id = ? AND product_id = ?&quot;</span><span class="p">,(</span><span class="n">customer_id</span><span class="p">,</span><span class="n">product_id</span><span class="p">))</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="n">message</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;Wish removed from wishlist&quot;</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Deletion failed.&quot;</span><span class="p">)</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+        <span class="n">message</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;Cannot remove wish&quot;</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">message</span></div>
+
+
+<div class="viewcode-block" id="get_wishes">
+<a class="viewcode-back" href="../../database.html#database.wishlist_db.get_wishes">[docs]</a>
+<span class="k">def</span> <span class="nf">get_wishes</span><span class="p">(</span><span class="n">customer_id</span><span class="p">):</span>
+    <span class="n">wishes</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">connect_to_db</span><span class="p">()</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">row_factory</span> <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Row</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;SELECT * FROM Wishes WHERE customer_id = ?&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">customer_id</span><span class="p">))</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+            <span class="n">wish</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">wish</span><span class="p">[</span><span class="s2">&quot;wish_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span><span class="p">[</span><span class="s2">&quot;wish_id&quot;</span><span class="p">]</span>
+            <span class="n">wish</span><span class="p">[</span><span class="s2">&quot;customer_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span><span class="p">[</span><span class="s2">&quot;customer_id&quot;</span><span class="p">]</span>
+            <span class="n">wish</span><span class="p">[</span><span class="s2">&quot;product_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span><span class="p">[</span><span class="s2">&quot;product_id&quot;</span><span class="p">]</span>
+            <span class="n">wish</span><span class="p">[</span><span class="s2">&quot;quantity&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span><span class="p">[</span><span class="s2">&quot;quantity&quot;</span><span class="p">]</span>
+            <span class="n">wish</span><span class="p">[</span><span class="s2">&quot;added_at&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span><span class="p">[</span><span class="s2">&quot;added_at&quot;</span><span class="p">]</span>
+            <span class="n">wishes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">wish</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Failed to fetch all wishes.&quot;</span><span class="p">)</span>
+        <span class="n">wishes</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">return</span> <span class="n">wishes</span></div>
+
+
+<div class="viewcode-block" id="get_wish_by_id">
+<a class="viewcode-back" href="../../database.html#database.wishlist_db.get_wish_by_id">[docs]</a>
+<span class="k">def</span> <span class="nf">get_wish_by_id</span><span class="p">(</span><span class="n">wish_id</span><span class="p">):</span>
+    <span class="n">wish</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">connect_to_db</span><span class="p">()</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">row_factory</span> <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Row</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;SELECT * FROM Wishes WHERE wish_id = ?&quot;</span><span class="p">,(</span><span class="n">wish_id</span><span class="p">,))</span>
+        <span class="n">row</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="n">wish</span><span class="p">[</span><span class="s2">&quot;wish_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;wish_id&quot;</span><span class="p">]</span>
+        <span class="n">wish</span><span class="p">[</span><span class="s2">&quot;customer_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;customer_id&quot;</span><span class="p">]</span>
+        <span class="n">wish</span><span class="p">[</span><span class="s2">&quot;product_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;product_id&quot;</span><span class="p">]</span>
+        <span class="n">wish</span><span class="p">[</span><span class="s2">&quot;quantity&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;quantity&quot;</span><span class="p">]</span>
+        <span class="n">wish</span><span class="p">[</span><span class="s2">&quot;added_at&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;added_at&quot;</span><span class="p">]</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to fetch wish with id: </span><span class="si">{</span><span class="n">wish_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">product</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">return</span> <span class="n">product</span></div>
+
+
+
+<div class="viewcode-block" id="notify_abandoned_wishlist">
+<a class="viewcode-back" href="../../database.html#database.wishlist_db.notify_abandoned_wishlist">[docs]</a>
+<span class="k">def</span> <span class="nf">notify_abandoned_wishlist</span><span class="p">(</span><span class="n">customer_id</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">connect_to_db</span><span class="p">()</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">row_factory</span> <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Row</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+        <span class="n">abandoned_threshold</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
+
+        <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;SELECT * FROM Wishes WHERE customer_id = ? AND added_at &lt; ?&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">customer_id</span><span class="p">,</span> <span class="n">abandoned_threshold</span><span class="p">))</span>
+
+        <span class="n">abandoned_wishes</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">abandoned_wishes</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No abandoned wishlist items found for customer </span><span class="si">{</span><span class="n">customer_id</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="k">for</span> <span class="n">wish</span> <span class="ow">in</span> <span class="n">abandoned_wishes</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Notification: Customer </span><span class="si">{</span><span class="n">wish</span><span class="p">[</span><span class="s1">&#39;customer_id&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">, &quot;</span>
+                  <span class="sa">f</span><span class="s2">&quot;your wish for product </span><span class="si">{</span><span class="n">wish</span><span class="p">[</span><span class="s1">&#39;product_id&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> (quantity: </span><span class="si">{</span><span class="n">wish</span><span class="p">[</span><span class="s1">&#39;quantity&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">) &quot;</span>
+                  <span class="sa">f</span><span class="s2">&quot;added on </span><span class="si">{</span><span class="n">wish</span><span class="p">[</span><span class="s1">&#39;added_at&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> is still in your wishlist. Consider purchasing!&quot;</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to process abandoned wishlist notification: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Hassan Miskawi, Ounsi Kanaan.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
